@@ -1,0 +1,18 @@
+# Copiar a terraform.tfvars y completar con los valores de tu cuenta.
+# terraform.tfvars está en .gitignore: no lo subas al repo.
+
+aws_region   = "us-east-1"
+cluster_name = "my-cluster"
+
+# Subnets privadas del cluster. Para listarlas:
+#   aws eks describe-cluster --name my-cluster --query 'cluster.resourcesVpcConfig.subnetIds'
+subnet_ids = ["subnet-aaaa", "subnet-bbbb", "subnet-cccc"]
+
+# Hora local en la que se apaga y se enciende (no UTC)
+schedule_timezone        = "America/Santiago"
+shutdown_cron_expression = "cron(0 21 ? * * *)"
+startup_cron_expression  = "cron(0 7 ? * * *)"
+
+schedule_state = "ENABLED"
+
+slack_webhook_ssm_parameter_name = "/nightly-shutdown/slack-webhook-url"

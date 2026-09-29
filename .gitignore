@@ -1,0 +1,16 @@
+# Terraform
+.terraform/
+*.tfstate
+*.tfstate.*
+*.tfvars
+!*.tfvars.example
+crash.log
+*.tfplan
+
+# Paquetes que genera terraform-aws-modules/lambda
+builds/
+
+# Python
+__pycache__/
+*.pyc
+.venv/

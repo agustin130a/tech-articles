@@ -1,0 +1,35 @@
+# Pod de prueba para validar que el anclaje a un node group apagable funciona. Sin nodeSelector +
+# toleration, un pod puede terminar en cualquier otro node group del cluster en vez de quedar
+# anclado aquí (un taint solo repele, no obliga a quedarse).
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: nightly-shutdown-test
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: nginx-test
+  namespace: nightly-shutdown-test
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: nginx-test
+  template:
+    metadata:
+      labels:
+        app: nginx-test
+    spec:
+      nodeSelector:
+        workload-class: nightly-shutdown-general
+      tolerations:
+        - key: nightly-shutdown
+          operator: Equal
+          value: "true"
+          effect: NoSchedule
+      containers:
+        - name: nginx
+          image: nginx:1.27-alpine
+          ports:
+            - containerPort: 80
