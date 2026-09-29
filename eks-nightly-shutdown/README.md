@@ -333,7 +333,7 @@ Si ya no la vas a usar, elimina también la app de Slack desde [api.slack.com/ap
 
 ---
 
-## Tropiezos que ya están resueltos en el código
+## Detalles de implementación que ya resuelve el código
 
 1. **Cluster Autoscaler revierte el apagado si `max` no baja.** EKS etiqueta los ASG de los managed
    node groups para que CA los descubra ([AWS](https://docs.aws.amazon.com/eks/latest/userguide/managed-node-groups.html)),
