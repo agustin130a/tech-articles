@@ -1,0 +1,58 @@
+# Beyla en modo "network" como DaemonSet separado (no dentro de Alloy).
+# Chart: grafana/beyla 1.16.11 (Beyla 3.32.0). Reemplazar <...> antes de instalar.
+preset: network
+
+# Copiar las tolerations del agente de logs/metricas que ya corre en todos los nodos.
+tolerations:
+  - {key: <TAINT_KEY>, operator: Equal, value: <TAINT_VALUE>, effect: NoSchedule}
+
+resources:
+  requests: {cpu: 20m, memory: 64Mi}
+  limits: {cpu: 500m, memory: 512Mi}
+
+# Nodos llenos: preferible ajustar requests o agrandar nodos. priorityClassName de sistema
+# garantiza que entre, pero el scheduler desaloja otros pods para hacerle lugar.
+# priorityClassName: system-node-critical
+
+service:
+  enabled: true
+
+serviceMonitor:
+  enabled: true
+  additionalLabels:
+    release: <RELEASE_LABEL_DEL_PROMETHEUS>   # el que usa su serviceMonitorSelector
+  metrics:
+    endpoint: {interval: 15s}
+  internalMetrics:
+    endpoint: {interval: 15s}
+
+config:
+  data:
+    attributes:
+      kubernetes:
+        enable: true
+      select:
+        beyla_network_flow_bytes:
+          include:
+            - k8s.src.namespace
+            - k8s.src.owner.name
+            - k8s.dst.namespace
+            - k8s.dst.owner.name
+            - src.cidr
+            - dst.cidr
+            - direction
+    network:
+      enable: true
+      cidrs:
+        - <VPC_CIDR>        # ej. 10.0.0.0/16
+        - <SERVICE_CIDR>    # ej. 172.20.0.0/16
+        # - rangos de S3/DynamoDB de la region si hay gateway endpoints
+        - 0.0.0.0/0         # todo lo demas = internet (via NAT)
+    # hostNetwork: no usar 9090, puede chocar con otros procesos del nodo
+    prometheus_export:
+      port: 9400
+      path: /metrics
+    internal_metrics:
+      prometheus:
+        port: 9401
+        path: /internal/metrics

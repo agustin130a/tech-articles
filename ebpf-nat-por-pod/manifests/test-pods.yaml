@@ -1,0 +1,23 @@
+# Pods de prueba: uno descarga de internet, otro sirve un archivo por red interna.
+# Fijarlos a nodos donde corra Beyla (y en nodos distintos entre si).
+apiVersion: v1
+kind: Pod
+metadata: {name: poc-downloader, namespace: ebpf-poc}
+spec:
+  nodeSelector: {kubernetes.io/hostname: <NODO_A>}
+  containers:
+  - name: c
+    image: curlimages/curl:8.10.1
+    command: ["sleep", "3600"]
+    resources: {requests: {cpu: 50m, memory: 32Mi}, limits: {memory: 128Mi}}
+---
+apiVersion: v1
+kind: Pod
+metadata: {name: poc-server, namespace: ebpf-poc}
+spec:
+  nodeSelector: {kubernetes.io/hostname: <NODO_B>}
+  containers:
+  - name: c
+    image: python:3.12-alpine
+    command: ["sh", "-c", "mkdir -p /srv && head -c 300000000 /dev/zero > /srv/file.bin && cd /srv && python -m http.server 8000"]
+    resources: {requests: {cpu: 50m, memory: 64Mi}, limits: {memory: 256Mi}}

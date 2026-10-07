@@ -6,6 +6,7 @@ blogs. Cada artículo vive en su propia carpeta, con un `README.md` que explica 
 | Artículo | Carpeta | Temas |
 |---|---|---|
 | Kubernetes: apaga esos nodos que no usas | [`eks-nightly-shutdown/`](eks-nightly-shutdown/) | EKS · EventBridge Scheduler · Step Functions · Lambda · Terraform |
+| ¿Quién se está comiendo el NAT Gateway? | [`ebpf-nat-por-pod/`](ebpf-nat-por-pod/) | EKS Auto Mode · NAT Gateway · eBPF · Grafana Beyla · Prometheus |
 
 ## Licencia
 
