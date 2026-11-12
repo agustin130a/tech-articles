@@ -1,0 +1,6 @@
+$ promtool check rules alerts/prometheus-kubeadm-certs.rules.yaml
+Checking prometheus-kubeadm-certs.rules.yaml
+  SUCCESS: 4 rules found
+
+$ promtool test rules alerts/prometheus-kubeadm-certs.test.yaml
+  SUCCESS

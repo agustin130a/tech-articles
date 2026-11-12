@@ -1,0 +1,72 @@
+== Días hasta el vencimiento (Prometheus)
+  cp-1       kubelet-serving            kubelet-serving    -161.2 d
+  cp-2       kubelet-serving            kubelet-serving    -161.2 d
+  cp-3       kubelet-serving            kubelet-serving    -161.2 d
+  worker-1   kubelet-serving            kubelet-serving    -161.2 d
+  lab-cp-1   etcd-server                leaf                 20.0 d
+  lab-cp-1   scheduler.conf             kubeconfig           20.0 d
+  lab-cp-1   apiserver                  leaf                 20.0 d
+  worker-1   kubelet-client             kubelet-client      121.5 d
+  cp-2       kubelet-client             kubelet-client      135.0 d
+  cp-3       kubelet-client             kubelet-client      163.4 d
+  lab-cp-1   kubelet-client             kubelet-client      300.0 d
+  cp-1       kubelet-client             kubelet-client      356.9 d
+  cp-1       etcd-healthcheck-client    leaf                356.9 d
+  cp-1       apiserver                  leaf                356.9 d
+  cp-1       scheduler.conf             kubeconfig          356.9 d
+  cp-1       apiserver-etcd-client      leaf                356.9 d
+  cp-1       apiserver-kubelet-client   leaf                356.9 d
+  cp-1       admin.conf                 kubeconfig          356.9 d
+  cp-1       controller-manager.conf    kubeconfig          356.9 d
+  cp-1       front-proxy-client         leaf                356.9 d
+  cp-1       super-admin.conf           kubeconfig          356.9 d
+  cp-1       etcd-server                leaf                356.9 d
+  cp-1       etcd-peer                  leaf                356.9 d
+  cp-2       front-proxy-client         leaf                356.9 d
+  cp-2       apiserver-kubelet-client   leaf                356.9 d
+  cp-2       etcd-healthcheck-client    leaf                356.9 d
+  cp-2       admin.conf                 kubeconfig          356.9 d
+  cp-2       scheduler.conf             kubeconfig          356.9 d
+  cp-2       etcd-peer                  leaf                356.9 d
+  cp-2       apiserver                  leaf                356.9 d
+  cp-2       apiserver-etcd-client      leaf                356.9 d
+  cp-2       etcd-server                leaf                356.9 d
+  cp-2       controller-manager.conf    kubeconfig          356.9 d
+  cp-3       apiserver-kubelet-client   leaf                356.9 d
+  cp-3       etcd-healthcheck-client    leaf                356.9 d
+  cp-3       admin.conf                 kubeconfig          356.9 d
+  cp-3       scheduler.conf             kubeconfig          356.9 d
+  cp-3       etcd-server                leaf                356.9 d
+  cp-3       controller-manager.conf    kubeconfig          356.9 d
+  cp-3       front-proxy-client         leaf                356.9 d
+  cp-3       etcd-peer                  leaf                356.9 d
+  cp-3       apiserver                  leaf                356.9 d
+  cp-3       apiserver-etcd-client      leaf                356.9 d
+  worker-1   ca                         ca                 3123.8 d
+  cp-1       ca                         ca                 3123.8 d
+  cp-3       etcd-ca                    ca                 3123.8 d
+  cp-2       ca                         ca                 3123.8 d
+  cp-1       etcd-ca                    ca                 3123.8 d
+  cp-3       ca                         ca                 3123.8 d
+  cp-2       etcd-ca                    ca                 3123.8 d
+  cp-3       front-proxy-ca             ca                 3123.8 d
+  cp-2       front-proxy-ca             ca                 3123.8 d
+  cp-1       front-proxy-ca             ca                 3123.8 d
+  lab-cp-1   ca                         ca                 3650.0 d
+
+== Reglas de Grafana
+  [firing  ] Certificado de kubeadm por vencer (health=ok)
+      -> apiserver en lab-cp-1 vence en 20 días
+      -> etcd-server en lab-cp-1 vence en 20 días
+      -> scheduler.conf en lab-cp-1 vence en 20 días
+  [inactive] Exportador de certificados sin datos (health=ok)
+  [inactive] Cliente del apiserver con certificado por vencer (health=ok)
+
+== Mismo laboratorio, con worker-1 simulando 4 h sin correr el exportador
+  [firing  ] Certificado de kubeadm por vencer (health=ok)
+      -> apiserver en lab-cp-1 vence en 20 días
+      -> etcd-server en lab-cp-1 vence en 20 días
+      -> scheduler.conf en lab-cp-1 vence en 20 días
+  [firing  ] Exportador de certificados sin datos (health=ok)
+      -> El exportador de certificados de worker-1 no corre hace más de 3 h
+  [inactive] Cliente del apiserver con certificado por vencer (health=ok)

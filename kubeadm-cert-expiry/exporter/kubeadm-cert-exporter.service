@@ -1,0 +1,14 @@
+[Unit]
+Description=Publica el vencimiento de los certificados de kubeadm para node_exporter
+
+[Service]
+Type=oneshot
+ExecStart=/usr/local/sbin/kubeadm-cert-exporter.sh
+# Solo necesita leer certificados y escribir en el directorio del textfile collector.
+# StateDirectory crea /var/lib/node_exporter/textfile_collector si no existe y lo deja
+# escribible aunque ProtectSystem=strict monte el resto del sistema como solo lectura.
+ProtectSystem=strict
+StateDirectory=node_exporter/textfile_collector
+StateDirectoryMode=0755
+PrivateTmp=true
+NoNewPrivileges=true

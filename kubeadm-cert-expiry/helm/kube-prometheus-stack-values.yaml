@@ -1,0 +1,12 @@
+# Habilita el textfile collector en el node_exporter de kube-prometheus-stack.
+#
+# El chart ya monta la raíz del host en /host/root (hostRootFsMount.enabled: true),
+# así que no hace falta un volumen nuevo: alcanza con apuntar el collector a esa ruta.
+#
+# Ojo: extraArgs reemplaza la lista completa. Las dos primeras líneas son los
+# valores por defecto del chart; si no las copias, se pierden.
+prometheus-node-exporter:
+  extraArgs:
+    - --collector.filesystem.mount-points-exclude=^/(dev|proc|sys|run/containerd/.+|var/lib/docker/.+|var/lib/kubelet/.+)($|/)
+    - --collector.filesystem.fs-types-exclude=^(autofs|binfmt_misc|bpf|cgroup2?|configfs|debugfs|devpts|devtmpfs|fusectl|hugetlbfs|iso9660|mqueue|nsfs|overlay|proc|procfs|pstore|rpc_pipefs|securityfs|selinuxfs|squashfs|sysfs|tracefs|erofs)$
+    - --collector.textfile.directory=/host/root/var/lib/node_exporter/textfile_collector

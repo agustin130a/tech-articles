@@ -1,0 +1,11 @@
+# HELP kubeadm_cert_not_after_seconds Fecha de vencimiento (epoch) de un certificado del nodo.
+# TYPE kubeadm_cert_not_after_seconds gauge
+kubeadm_cert_not_after_seconds{host="worker-1",cert="ca",kind="ca"} 2064415998
+kubeadm_cert_not_after_seconds{host="worker-1",cert="kubelet-client",kind="kubelet-client"} 1805013357
+kubeadm_cert_not_after_seconds{host="worker-1",cert="kubelet-serving",kind="kubelet-serving"} 1780591012
+# HELP kubeadm_cert_exporter_last_run_timestamp_seconds Última ejecución del exportador (epoch).
+# TYPE kubeadm_cert_exporter_last_run_timestamp_seconds gauge
+kubeadm_cert_exporter_last_run_timestamp_seconds{host="worker-1"} 1794517972
+# HELP kubeadm_cert_exporter_errors Certificados presentes que no se pudieron leer en la última ejecución.
+# TYPE kubeadm_cert_exporter_errors gauge
+kubeadm_cert_exporter_errors{host="worker-1"} 0

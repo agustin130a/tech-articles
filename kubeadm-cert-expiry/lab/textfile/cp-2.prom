@@ -1,0 +1,23 @@
+# HELP kubeadm_cert_not_after_seconds Fecha de vencimiento (epoch) de un certificado del nodo.
+# TYPE kubeadm_cert_not_after_seconds gauge
+kubeadm_cert_not_after_seconds{host="cp-2",cert="ca",kind="ca"} 2064415998
+kubeadm_cert_not_after_seconds{host="cp-2",cert="etcd-ca",kind="ca"} 2064415998
+kubeadm_cert_not_after_seconds{host="cp-2",cert="front-proxy-ca",kind="ca"} 2064415998
+kubeadm_cert_not_after_seconds{host="cp-2",cert="apiserver",kind="leaf"} 1825356874
+kubeadm_cert_not_after_seconds{host="cp-2",cert="apiserver-kubelet-client",kind="leaf"} 1825356874
+kubeadm_cert_not_after_seconds{host="cp-2",cert="apiserver-etcd-client",kind="leaf"} 1825356874
+kubeadm_cert_not_after_seconds{host="cp-2",cert="front-proxy-client",kind="leaf"} 1825356874
+kubeadm_cert_not_after_seconds{host="cp-2",cert="etcd-server",kind="leaf"} 1825356874
+kubeadm_cert_not_after_seconds{host="cp-2",cert="etcd-peer",kind="leaf"} 1825356874
+kubeadm_cert_not_after_seconds{host="cp-2",cert="etcd-healthcheck-client",kind="leaf"} 1825356874
+kubeadm_cert_not_after_seconds{host="cp-2",cert="admin.conf",kind="kubeconfig"} 1825356874
+kubeadm_cert_not_after_seconds{host="cp-2",cert="controller-manager.conf",kind="kubeconfig"} 1825356874
+kubeadm_cert_not_after_seconds{host="cp-2",cert="scheduler.conf",kind="kubeconfig"} 1825356874
+kubeadm_cert_not_after_seconds{host="cp-2",cert="kubelet-client",kind="kubelet-client"} 1806185521
+kubeadm_cert_not_after_seconds{host="cp-2",cert="kubelet-serving",kind="kubelet-serving"} 1780589483
+# HELP kubeadm_cert_exporter_last_run_timestamp_seconds Última ejecución del exportador (epoch).
+# TYPE kubeadm_cert_exporter_last_run_timestamp_seconds gauge
+kubeadm_cert_exporter_last_run_timestamp_seconds{host="cp-2"} 1794517970
+# HELP kubeadm_cert_exporter_errors Certificados presentes que no se pudieron leer en la última ejecución.
+# TYPE kubeadm_cert_exporter_errors gauge
+kubeadm_cert_exporter_errors{host="cp-2"} 0

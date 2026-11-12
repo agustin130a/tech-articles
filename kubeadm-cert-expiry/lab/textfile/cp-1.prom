@@ -1,0 +1,24 @@
+# HELP kubeadm_cert_not_after_seconds Fecha de vencimiento (epoch) de un certificado del nodo.
+# TYPE kubeadm_cert_not_after_seconds gauge
+kubeadm_cert_not_after_seconds{host="cp-1",cert="ca",kind="ca"} 2064415998
+kubeadm_cert_not_after_seconds{host="cp-1",cert="etcd-ca",kind="ca"} 2064415998
+kubeadm_cert_not_after_seconds{host="cp-1",cert="front-proxy-ca",kind="ca"} 2064415998
+kubeadm_cert_not_after_seconds{host="cp-1",cert="apiserver",kind="leaf"} 1825356403
+kubeadm_cert_not_after_seconds{host="cp-1",cert="apiserver-kubelet-client",kind="leaf"} 1825356403
+kubeadm_cert_not_after_seconds{host="cp-1",cert="apiserver-etcd-client",kind="leaf"} 1825356403
+kubeadm_cert_not_after_seconds{host="cp-1",cert="front-proxy-client",kind="leaf"} 1825356403
+kubeadm_cert_not_after_seconds{host="cp-1",cert="etcd-server",kind="leaf"} 1825356403
+kubeadm_cert_not_after_seconds{host="cp-1",cert="etcd-peer",kind="leaf"} 1825356403
+kubeadm_cert_not_after_seconds{host="cp-1",cert="etcd-healthcheck-client",kind="leaf"} 1825356403
+kubeadm_cert_not_after_seconds{host="cp-1",cert="admin.conf",kind="kubeconfig"} 1825356403
+kubeadm_cert_not_after_seconds{host="cp-1",cert="super-admin.conf",kind="kubeconfig"} 1825356403
+kubeadm_cert_not_after_seconds{host="cp-1",cert="controller-manager.conf",kind="kubeconfig"} 1825356403
+kubeadm_cert_not_after_seconds{host="cp-1",cert="scheduler.conf",kind="kubeconfig"} 1825356403
+kubeadm_cert_not_after_seconds{host="cp-1",cert="kubelet-client",kind="kubelet-client"} 1825356311
+kubeadm_cert_not_after_seconds{host="cp-1",cert="kubelet-serving",kind="kubelet-serving"} 1780588431
+# HELP kubeadm_cert_exporter_last_run_timestamp_seconds Última ejecución del exportador (epoch).
+# TYPE kubeadm_cert_exporter_last_run_timestamp_seconds gauge
+kubeadm_cert_exporter_last_run_timestamp_seconds{host="cp-1"} 1794517969
+# HELP kubeadm_cert_exporter_errors Certificados presentes que no se pudieron leer en la última ejecución.
+# TYPE kubeadm_cert_exporter_errors gauge
+kubeadm_cert_exporter_errors{host="cp-1"} 0

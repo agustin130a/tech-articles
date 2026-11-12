@@ -1,0 +1,39 @@
+# Las mismas tres reglas en formato Prometheus, para `promtool test rules`
+# o para un PrometheusRule si tus notificaciones salen de Alertmanager.
+groups:
+  - name: kubeadm-certs
+    rules:
+      - alert: KubeadmCertificateExpiringSoon
+        expr: |
+          (min by (host, cert, kind) (kubeadm_cert_not_after_seconds{kind!~"ca|kubelet-serving"}) - time()) / 86400 < 30
+        for: 1h
+        labels:
+          severity: warning
+        annotations:
+          summary: "{{ $labels.cert }} en {{ $labels.host }} vence en {{ $value | humanize }} días"
+
+      - alert: KubeadmCertExporterStale
+        expr: |
+          (time() - max by (host) (kubeadm_cert_exporter_last_run_timestamp_seconds)) / 3600 > 3
+        for: 15m
+        labels:
+          severity: warning
+        annotations:
+          summary: "El exportador de certificados de {{ $labels.host }} no corre hace {{ $value | humanize }} h"
+
+      - alert: KubeadmCertExporterAbsent
+        expr: absent(kubeadm_cert_exporter_last_run_timestamp_seconds)
+        for: 15m
+        labels:
+          severity: warning
+        annotations:
+          summary: "Ningún nodo publica métricas de certificados de kubeadm"
+
+      - alert: KubeClientCertificateInUseExpiringSoon
+        expr: |
+          sum by (instance) (increase(apiserver_client_certificate_expiration_seconds_bucket{job="apiserver", le="2.592e+06"}[1h])) > 0
+        for: 1h
+        labels:
+          severity: warning
+        annotations:
+          summary: "El apiserver {{ $labels.instance }} recibe pedidos con certificados que vencen en menos de 30 días"

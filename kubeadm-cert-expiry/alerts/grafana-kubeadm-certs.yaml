@@ -1,0 +1,114 @@
+# Reglas de alerta de Grafana para el vencimiento de certificados de kubeadm.
+# Formato: file provisioning de Grafana Alerting (provisioning/alerting/*.yaml).
+# Cambia datasourceUid por el UID de tu datasource de Prometheus.
+apiVersion: 1
+groups:
+  - orgId: 1
+    name: kubeadm-certs
+    folder: Kubernetes
+    interval: 5m
+    rules:
+      # 1) Un certificado del nodo vence en menos de 30 días.
+      #    Fuente: kubeadm-cert-exporter.sh vía textfile collector de node_exporter.
+      #    Se excluyen las CA (tienen su propia ventana) y el serving cert autofirmado
+      #    del kubelet, que nadie valida por defecto y no se renueva solo.
+      - uid: kubeadm-cert-expiring
+        title: Certificado de kubeadm por vencer
+        condition: B
+        data:
+          - refId: A
+            relativeTimeRange: { from: 600, to: 0 }
+            datasourceUid: prometheus
+            model:
+              refId: A
+              instant: true
+              expr: |
+                (min by (host, cert, kind) (kubeadm_cert_not_after_seconds{kind!~"ca|kubelet-serving"}) - time()) / 86400
+          - refId: B
+            datasourceUid: __expr__
+            model:
+              refId: B
+              type: threshold
+              expression: A
+              conditions:
+                - evaluator: { type: lt, params: [30] }
+        noDataState: OK          # si no hay datos, avisa la regla 2
+        execErrState: Error
+        for: 1h
+        labels:
+          severity: warning
+        annotations:
+          summary: "{{ $labels.cert }} en {{ $labels.host }} vence en {{ humanize $values.A.Value }} días"
+          description: >-
+            Renovar con `kubeadm certs renew all` en cada control plane, de a un nodo, y
+            reiniciar los static pods (kube-apiserver, kube-controller-manager, kube-scheduler).
+            Si es kubelet-client, revisar por qué no rotó (rotateCertificates, CSRs pendientes).
+
+      # 2) El exportador dejó de correr (o nunca corrió): sin esto, la regla 1
+      #    se queda en silencio justo cuando más importa.
+      - uid: kubeadm-cert-exporter-stale
+        title: Exportador de certificados sin datos
+        condition: B
+        data:
+          - refId: A
+            relativeTimeRange: { from: 600, to: 0 }
+            datasourceUid: prometheus
+            model:
+              refId: A
+              instant: true
+              expr: |
+                (time() - max by (host) (kubeadm_cert_exporter_last_run_timestamp_seconds)) / 3600
+          - refId: B
+            datasourceUid: __expr__
+            model:
+              refId: B
+              type: threshold
+              expression: A
+              conditions:
+                - evaluator: { type: gt, params: [3] }
+        noDataState: Alerting    # ningún nodo publica la métrica
+        execErrState: Error
+        for: 15m
+        labels:
+          severity: warning
+        annotations:
+          # Sin $values: en el estado NoData no hay valores y el template quedaría sin resolver.
+          summary: >-
+            {{ if $labels.host }}El exportador de certificados de {{ $labels.host }} no corre hace más de 3 h{{ else }}Ningún nodo publica métricas de certificados de kubeadm{{ end }}
+          description: "Revisar el timer: systemctl status kubeadm-cert-exporter.timer"
+
+      # 3) Sin instalar nada: algún cliente se autentica contra el apiserver con un
+      #    certificado que vence en menos de 30 días (bucket le=2592000 del histograma).
+      #    Ve lo que el componente tiene en memoria, no lo que hay en disco: detecta un
+      #    scheduler o controller-manager que no se reinició después del renew.
+      - uid: kube-client-cert-in-use-expiring
+        title: Cliente del apiserver con certificado por vencer
+        condition: B
+        data:
+          - refId: A
+            relativeTimeRange: { from: 3600, to: 0 }
+            datasourceUid: prometheus
+            model:
+              refId: A
+              instant: true
+              expr: |
+                sum by (instance) (increase(apiserver_client_certificate_expiration_seconds_bucket{job="apiserver", le="2.592e+06"}[1h]))
+          - refId: B
+            datasourceUid: __expr__
+            model:
+              refId: B
+              type: threshold
+              expression: A
+              conditions:
+                - evaluator: { type: gt, params: [0] }
+        noDataState: OK
+        execErrState: Error
+        for: 1h
+        labels:
+          severity: warning
+        annotations:
+          summary: "El apiserver {{ $labels.instance }} recibe pedidos con certificados que vencen en menos de 30 días"
+          description: >-
+            Algún cliente (scheduler, controller-manager, kubelet o un usuario) se autentica con
+            un certificado por vencer. Comparar con `kubeadm certs check-expiration`: si en disco
+            está renovado, falta reiniciar el static pod que lo usa.

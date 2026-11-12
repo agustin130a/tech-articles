@@ -1,0 +1,9 @@
+# Consulta de la regla 3 contra el Prometheus de un cluster real (3 apiservers), cambiando el bucket.
+# Ningún cliente se autentica con un certificado de menos de 90 días; los kubelets de los
+# workers (121–163 días de vida restante) sí aparecen en el bucket de 180 días.
+#
+# sum by (instance) (increase(apiserver_client_certificate_expiration_seconds_bucket{job="apiserver", le="<bucket>"}[1h]))
+
+le="2.592e+06"   (30 días)   0 / 0 / 0
+le="7.776e+06"   (90 días)   0 / 0 / 0
+le="1.5552e+07"  (180 días)  5208 / 1434 / 566

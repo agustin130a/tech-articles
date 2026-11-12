@@ -1,0 +1,74 @@
+# promtool test rules alerts/prometheus-kubeadm-certs.test.yaml
+# En promtool, time() arranca en 0: un not_after de 1735200 a las 2 h son
+# (1735200 - 7200) / 86400 = 20 días.
+rule_files:
+  - prometheus-kubeadm-certs.rules.yaml
+
+evaluation_interval: 1m
+
+tests:
+  # Certificados: solo dispara el leaf a 20 días.
+  - interval: 1m
+    input_series:
+      - series: 'kubeadm_cert_not_after_seconds{host="cp-1",cert="apiserver",kind="leaf"}'
+        values: '1735200x300'          # 20 días a las 2 h
+      - series: 'kubeadm_cert_not_after_seconds{host="cp-2",cert="apiserver",kind="leaf"}'
+        values: '8647200x300'          # 100 días: no dispara
+      - series: 'kubeadm_cert_not_after_seconds{host="cp-1",cert="kubelet-serving",kind="kubelet-serving"}'
+        values: '0x300'                # vencido, pero excluido a propósito
+      - series: 'kubeadm_cert_not_after_seconds{host="cp-1",cert="ca",kind="ca"}'
+        values: '864000x300'           # CA a 10 días: excluida de esta regla
+      - series: 'kubeadm_cert_exporter_last_run_timestamp_seconds{host="cp-1"}'
+        values: '0x300'                # dejó de correr en t=0
+      - series: 'kubeadm_cert_exporter_last_run_timestamp_seconds{host="cp-2"}'
+        values: '0+60x300'             # corre cada minuto
+    alert_rule_test:
+      - eval_time: 30m
+        alertname: KubeadmCertificateExpiringSoon
+        exp_alerts: []                 # todavía en pending (for: 1h)
+      - eval_time: 2h
+        alertname: KubeadmCertificateExpiringSoon
+        exp_alerts:
+          - exp_labels: { severity: warning, host: cp-1, cert: apiserver, kind: leaf }
+            exp_annotations:
+              summary: "apiserver en cp-1 vence en 20 días"
+      - eval_time: 2h
+        alertname: KubeadmCertExporterStale
+        exp_alerts: []                 # 2 h sin correr: todavía no
+      - eval_time: 4h
+        alertname: KubeadmCertExporterStale
+        exp_alerts:
+          - exp_labels: { severity: warning, host: cp-1 }
+            exp_annotations:
+              summary: "El exportador de certificados de cp-1 no corre hace 4 h"
+      - eval_time: 4h
+        alertname: KubeadmCertExporterAbsent
+        exp_alerts: []
+
+  # Ningún nodo publica la métrica.
+  - interval: 1m
+    input_series:
+      - series: 'up{job="node-exporter"}'
+        values: '1x60'
+    alert_rule_test:
+      - eval_time: 30m
+        alertname: KubeadmCertExporterAbsent
+        exp_alerts:
+          - exp_labels: { severity: warning }
+            exp_annotations:
+              summary: "Ningún nodo publica métricas de certificados de kubeadm"
+
+  # Histograma del apiserver: solo dispara la instancia cuyo bucket de 30 días crece.
+  - interval: 1m
+    input_series:
+      - series: 'apiserver_client_certificate_expiration_seconds_bucket{job="apiserver",instance="cp-1:6443",le="2.592e+06"}'
+        values: '0+5x300'              # 5 pedidos/min con cert < 30 días
+      - series: 'apiserver_client_certificate_expiration_seconds_bucket{job="apiserver",instance="cp-2:6443",le="2.592e+06"}'
+        values: '100x300'              # contador quieto: increase = 0
+    alert_rule_test:
+      - eval_time: 3h
+        alertname: KubeClientCertificateInUseExpiringSoon
+        exp_alerts:
+          - exp_labels: { severity: warning, instance: "cp-1:6443" }
+            exp_annotations:
+              summary: "El apiserver cp-1:6443 recibe pedidos con certificados que vencen en menos de 30 días"
