@@ -1,0 +1,161 @@
+# Publishes the next sequential prerelease after merges to main and holds
+# the next one until its staging deploy finishes.
+#
+# The first push starts a quiet period that further pushes do not reset. When
+# it ends, the main tip is tested, tagged and published. Pushes arriving
+# while a run is in progress queue a single follow-up run (GitHub keeps one
+# pending run per concurrency group), which starts once build-artifacts.yaml
+# has finished for the current release, successful or not. A follow-up whose
+# main tip is already tagged does nothing.
+#
+# The release is created with a GitHub App token because releases created with
+# GITHUB_TOKEN do not trigger other workflows (build-artifacts.yaml listens to
+# release: published).
+#
+# Required settings (Settings → Secrets and variables → Actions):
+#   vars.RELEASE_APP_CLIENT_ID              GitHub App Client ID
+#   secrets.RELEASE_APP_PRIVATE_KEY         GitHub App private key (.pem)
+#   vars.RELEASE_VERSION_MAJOR              major of the published versions (e.g. 3)
+#   vars.RELEASE_VERSION_MINOR              minor of the published versions (e.g. 1)
+#   vars.PRERELEASE_QUIET_PERIOD_SECONDS    optional, defaults to 300 (5 min)
+#
+# Versioning: the next tag is v<MAJOR>.<MINOR>.<highest patch + 1>, considering
+# only v<MAJOR>.<MINOR>.N and v<MAJOR>.<MINOR>.N-rcM tags. Changing either
+# variable starts the new series at v<MAJOR>.<MINOR>.0 if it has no tags yet.
+
+name: "Auto Prerelease"
+
+on:
+  push:
+    branches: [main]
+
+concurrency:
+  group: auto-prerelease
+  cancel-in-progress: false
+
+permissions:
+  contents: read
+
+jobs:
+  quiet-period:
+    name: "Wait for further merges"
+    runs-on: ubuntu-22.04
+    timeout-minutes: 15
+    outputs:
+      sha: ${{ steps.tip.outputs.sha }}
+    steps:
+      - name: Sleep
+        env:
+          QUIET_PERIOD: ${{ vars.PRERELEASE_QUIET_PERIOD_SECONDS || '300' }}
+        run: |
+          set -euo pipefail
+          if ! [[ "$QUIET_PERIOD" =~ ^[0-9]+$ ]]; then
+            echo "::error::PRERELEASE_QUIET_PERIOD_SECONDS must be a whole number of seconds, got '$QUIET_PERIOD'"
+            exit 1
+          fi
+          echo "Waiting ${QUIET_PERIOD}s for further merges to ${GITHUB_REF_NAME}"
+          sleep "$QUIET_PERIOD"
+
+      # Release whatever is on main now, not the commit that started the run
+      - name: Resolve main tip
+        id: tip
+        env:
+          GH_TOKEN: ${{ github.token }}
+          GH_REPO: ${{ github.repository }}
+        run: |
+          set -euo pipefail
+          SHA=$(gh api "repos/${GH_REPO}/commits/${GITHUB_REF_NAME}" --jq '.sha')
+          echo "Releasing ${GITHUB_REF_NAME} at ${SHA}"
+          echo "sha=$SHA" >> "$GITHUB_OUTPUT"
+
+  unit-tests:
+    needs: [quiet-period]
+    uses: ./.github/workflows/unit-tests.yaml
+    permissions:
+      contents: read
+      checks: write
+    with:
+      ref: ${{ needs.quiet-period.outputs.sha }}
+
+  create-prerelease:
+    name: "Publish prerelease"
+    needs: [quiet-period, unit-tests]
+    runs-on: ubuntu-22.04
+    timeout-minutes: 10
+    outputs:
+      skip: ${{ steps.version.outputs.skip }}
+      tag: ${{ steps.version.outputs.next_tag }}
+    steps:
+      - name: Checkout Repository
+        uses: actions/checkout@v6
+        with:
+          ref: ${{ needs.quiet-period.outputs.sha }}
+
+      - name: Create GitHub App token
+        id: app-token
+        uses: actions/create-github-app-token@v3
+        with:
+          client-id: ${{ vars.RELEASE_APP_CLIENT_ID }}
+          private-key: ${{ secrets.RELEASE_APP_PRIVATE_KEY }}
+          permission-contents: write
+
+      - name: Compute next version
+        id: version
+        uses: ./.github/actions/next-version
+        with:
+          major: ${{ vars.RELEASE_VERSION_MAJOR }}
+          minor: ${{ vars.RELEASE_VERSION_MINOR }}
+          sha: ${{ needs.quiet-period.outputs.sha }}
+
+      - name: Publish prerelease
+        if: steps.version.outputs.skip == 'false'
+        uses: ./.github/actions/publish-prerelease
+        with:
+          token: ${{ steps.app-token.outputs.token }}
+          tag: ${{ steps.version.outputs.next_tag }}
+          prev_tag: ${{ steps.version.outputs.prev_tag }}
+          sha: ${{ needs.quiet-period.outputs.sha }}
+
+  # Keeps the concurrency group busy until the release reaches staging, so the
+  # next prerelease cannot be built and deployed before this one.
+  wait-for-staging:
+    name: "Wait for build and staging deploy"
+    needs: [create-prerelease]
+    if: needs.create-prerelease.outputs.skip == 'false'
+    runs-on: ubuntu-22.04
+    timeout-minutes: 180
+    permissions:
+      actions: read
+    steps:
+      - name: Wait for Build Artifacts
+        env:
+          GH_TOKEN: ${{ github.token }}
+          GH_REPO: ${{ github.repository }}
+          TAG: ${{ needs.create-prerelease.outputs.tag }}
+        run: |
+          set -euo pipefail
+
+          RUN_ID=""
+          for attempt in $(seq 1 30); do
+            RUN_ID=$(gh run list --workflow build-artifacts.yaml --event release --limit 20 \
+              --json databaseId,headBranch \
+              | jq -r --arg tag "$TAG" 'map(select(.headBranch == $tag)) | first | .databaseId // empty')
+            [ -n "$RUN_ID" ] && break
+            echo "Build Artifacts run for ${TAG} not found yet (attempt ${attempt}/30)"
+            sleep 10
+          done
+
+          if [ -z "$RUN_ID" ]; then
+            echo "::error::No Build Artifacts run found for ${TAG}"
+            exit 1
+          fi
+
+          echo "Waiting for Build Artifacts run ${RUN_ID} (${TAG})"
+          gh run watch "$RUN_ID" --interval 30 > /dev/null
+
+          CONCLUSION=$(gh run view "$RUN_ID" --json conclusion --jq '.conclusion')
+          echo "### ${TAG}: Build Artifacts finished with ${CONCLUSION}" >> "$GITHUB_STEP_SUMMARY"
+          if [ "$CONCLUSION" != "success" ]; then
+            echo "::error::Build Artifacts run ${RUN_ID} for ${TAG} finished with ${CONCLUSION}"
+            exit 1
+          fi

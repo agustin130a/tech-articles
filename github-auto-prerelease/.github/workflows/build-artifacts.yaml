@@ -1,0 +1,21 @@
+# Stub of the real build-artifacts.yaml: simulates build + staging deploy with a sleep.
+name: "Build Artifacts"
+
+on:
+  release:
+    types: [published]
+
+concurrency:
+  group: build-artifacts-${{ github.event.release.tag_name }}
+  cancel-in-progress: false
+
+jobs:
+  deploy-staging:
+    name: "Simulated build and staging deploy"
+    if: github.event.release.prerelease == true
+    runs-on: ubuntu-22.04
+    steps:
+      - run: |
+          echo "START ${{ github.event.release.tag_name }} $(date -u +%FT%TZ)"
+          sleep 120
+          echo "END ${{ github.event.release.tag_name }} $(date -u +%FT%TZ)"

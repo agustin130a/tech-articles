@@ -1,0 +1,54 @@
+name: "Publish Prerelease"
+description: "Create a prerelease with generated notes and the auto-prerelease marker"
+
+inputs:
+  token:
+    required: true
+    description: "Token used to create the release (must be able to trigger release: published)"
+  tag:
+    required: true
+    description: "Tag and title of the prerelease"
+  prev_tag:
+    required: false
+    default: ""
+    description: "Tag to generate release notes from (GitHub uses the latest release if empty)"
+  sha:
+    required: true
+    description: "Commit the tag points to"
+
+runs:
+  using: composite
+  steps:
+    - name: Publish prerelease
+      shell: bash
+      env:
+        GH_TOKEN: ${{ inputs.token }}
+        GH_REPO: ${{ github.repository }}
+        TAG: ${{ inputs.tag }}
+        PREV_TAG: ${{ inputs.prev_tag }}
+        SHA: ${{ inputs.sha }}
+      run: |
+        set -euo pipefail
+
+        PREV_ARGS=()
+        if [ -n "$PREV_TAG" ]; then
+          PREV_ARGS=(-f previous_tag_name="$PREV_TAG")
+        fi
+
+        NOTES=$(gh api "repos/${GH_REPO}/releases/generate-notes" \
+          -f tag_name="$TAG" \
+          -f target_commitish="$SHA" \
+          "${PREV_ARGS[@]}" \
+          --jq '.body')
+
+        # Marker read by build-artifacts.yaml to skip the release-notes Slack ping
+        NOTES_FILE="${RUNNER_TEMP}/release-notes.md"
+        printf '<!-- auto-prerelease -->\n%s\n' "$NOTES" > "$NOTES_FILE"
+
+        gh release create "$TAG" \
+          --target "$SHA" \
+          --title "$TAG" \
+          --notes-file "$NOTES_FILE" \
+          --prerelease
+
+        echo "### Published prerelease ${TAG}" >> "$GITHUB_STEP_SUMMARY"

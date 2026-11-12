@@ -1,0 +1,23 @@
+# Stub of the real unit-tests.yaml: same interface, no tests.
+name: "Unit Tests"
+
+on:
+  workflow_call:
+    inputs:
+      ref:
+        required: false
+        type: string
+        default: ""
+
+jobs:
+  unit-tests:
+    name: "Tier 1: Unit Tests"
+    runs-on: ubuntu-22.04
+    permissions:
+      contents: read
+      checks: write
+    steps:
+      - uses: actions/checkout@v6
+        with:
+          ref: ${{ inputs.ref }}
+      - run: echo "Testing $(git rev-parse HEAD) ($(git log -1 --format=%s))"

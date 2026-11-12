@@ -1,0 +1,75 @@
+name: "Next Prerelease Version"
+description: "Compute the next v<major>.<minor>.<patch> tag from the repository tags (requires a checkout)"
+
+inputs:
+  major:
+    required: true
+    description: "Major version of the series"
+  minor:
+    required: true
+    description: "Minor version of the series"
+  sha:
+    required: true
+    description: "Commit the prerelease will point to"
+
+outputs:
+  skip:
+    description: "true when the commit already has a version tag"
+    value: ${{ steps.compute.outputs.skip }}
+  prev_tag:
+    description: "Highest existing tag in the series (empty if the series has no tags)"
+    value: ${{ steps.compute.outputs.prev_tag }}
+  next_tag:
+    description: "Next tag: highest patch in the series + 1, or <major>.<minor>.0"
+    value: ${{ steps.compute.outputs.next_tag }}
+
+runs:
+  using: composite
+  steps:
+    - name: Compute next version
+      id: compute
+      shell: bash
+      env:
+        MAJOR: ${{ inputs.major }}
+        MINOR: ${{ inputs.minor }}
+        SHA: ${{ inputs.sha }}
+      run: |
+        set -euo pipefail
+
+        if ! [[ "$MAJOR" =~ ^[0-9]+$ && "$MINOR" =~ ^[0-9]+$ ]]; then
+          echo "::error::Major and minor must be whole numbers (got '$MAJOR' and '$MINOR')"
+          exit 1
+        fi
+        SERIES="v${MAJOR}.${MINOR}"
+
+        # "<sha> refs/tags/<name>" lines; annotated tags also list a peeled "^{}" entry
+        TAGS=$(git ls-remote --tags origin | sed -E 's#refs/tags/##; s#\^\{\}$##')
+        ANY_VERSION_RE='^v[0-9]+\.[0-9]+\.[0-9]+(-rc[0-9]+)?$'
+        SERIES_RE="^v${MAJOR}\.${MINOR}\.[0-9]+(-rc[0-9]+)?\$"
+
+        EXISTING=$(awk -v sha="$SHA" '$1 == sha { print $2 }' <<< "$TAGS" | grep -E "$ANY_VERSION_RE" | head -n1 || true)
+        if [ -n "$EXISTING" ]; then
+          echo "Commit $SHA is already tagged as $EXISTING, skipping"
+          echo "skip=true" >> "$GITHUB_OUTPUT"
+          exit 0
+        fi
+
+        PREV_TAG=$(awk '{ print $2 }' <<< "$TAGS" | grep -E "$SERIES_RE" | sort -uV | tail -n1 || true)
+        if [ -z "$PREV_TAG" ]; then
+          NEXT="${SERIES}.0"
+        else
+          BASE="${PREV_TAG%%-*}"
+          NEXT="${SERIES}.$(( ${BASE##*.} + 1 ))"
+        fi
+
+        if awk '{ print $2 }' <<< "$TAGS" | grep -qx "$NEXT"; then
+          echo "::error::Tag $NEXT already exists"
+          exit 1
+        fi
+
+        echo "Previous: ${PREV_TAG:-none in ${SERIES}} -> next: $NEXT"
+        {
+          echo "skip=false"
+          echo "prev_tag=$PREV_TAG"
+          echo "next_tag=$NEXT"
+        } >> "$GITHUB_OUTPUT"
