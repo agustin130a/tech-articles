@@ -1,0 +1,9 @@
+github_org     = "<TU-ORG>"
+github_org_id  = "<ID-ORG>"  # opcional: gh api orgs/<org> -q .id
+github_repo    = "<TU-REPO>"
+github_repo_id = "<ID-REPO>" # gh api repos/<org>/<repo> -q .id
+
+# gh api users/<login> -q .id
+allowed_actor_ids = ["<ID-USUARIO-1>", "<ID-USUARIO-2>"]
+
+restrict = true

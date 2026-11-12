@@ -1,0 +1,15 @@
+# Llama a deploy.yaml como workflow reutilizable (como un build que despliega al terminar)
+name: Caller
+
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  deploy:
+    uses: ./.github/workflows/deploy.yaml
+    permissions:
+      contents: read
+      id-token: write

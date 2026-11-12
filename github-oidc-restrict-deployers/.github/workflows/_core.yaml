@@ -1,0 +1,21 @@
+# Reusable: la lógica de deploy. Los wrappers definen quién lo dispara y con qué ambientes
+name: Deploy core
+
+on:
+  workflow_call:
+
+permissions:
+  contents: read
+
+jobs:
+  whoami:
+    runs-on: ubuntu-latest
+    environment: prd
+    permissions:
+      contents: read
+      id-token: write
+    env:
+      AWS_ROLE_ARN: ${{ vars.AWS_ROLE_ARN }}
+    steps:
+      - uses: actions/checkout@v5
+      - uses: ./.github/actions/whoami

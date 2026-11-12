@@ -1,0 +1,15 @@
+# El nombre va en ASCII: la trust policy lo compara con el claim workflow
+name: Deploy - Demo/Production
+
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  deploy:
+    uses: ./.github/workflows/_core.yaml
+    permissions:
+      contents: read
+      id-token: write

@@ -1,0 +1,30 @@
+name: Deploy
+
+on:
+  workflow_dispatch:
+  workflow_call:
+
+permissions:
+  contents: read
+
+jobs:
+  whoami:
+    runs-on: ubuntu-latest
+    environment: prd
+    permissions:
+      contents: read
+      id-token: write
+    env:
+      AWS_ROLE_ARN: ${{ vars.AWS_ROLE_ARN }}
+    steps:
+      # El claim actor del token OIDC es el que inició la corrida, también en un re-run:
+      # la trust policy no ve quién la relanzó, así que se valida acá
+      - name: Check triggering actor
+        if: ${{ !contains(fromJSON('["agustin130a"]'), github.triggering_actor) }}
+        env:
+          TRIGGERING_ACTOR: ${{ github.triggering_actor }}
+        run: |
+          echo "::error::${TRIGGERING_ACTOR} no está autorizado a desplegar"
+          exit 1
+      - uses: actions/checkout@v5
+      - uses: ./.github/actions/whoami
